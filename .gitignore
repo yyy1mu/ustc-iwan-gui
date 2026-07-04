@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Frontend build output
+dist/
+
+# Rust build output
+target/
+src-tauri/target/
+
+# Local Tauri/dev artifacts
+src-tauri/.tauri/
+src-tauri/gen/apple/
+src-tauri/gen/android/
+src-tauri/gen/schemas/macOS-schema.json
+
+# Local credentials and runtime output
+iwan_credentials.json
+iwan_keepalive.json
+*.log
+
+# Archives and packaged binaries
+*.zip
+*.tar.gz
+*.tgz
+*.deb
+*.rpm
+*.AppImage
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# GitHub Actions local runners
+_work/

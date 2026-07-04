@@ -1,0 +1,34 @@
+[package]
+name = "ustc-iwan"
+version = "0.1.0"
+description = "USTC iWAN credential helper"
+authors = ["USTC iWAN"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+aes = "0.8"
+anyhow = "1"
+base64 = "0.22"
+cipher = "0.4"
+ctrlc = "3.4"
+hex = "0.4"
+hmac = "0.12"
+libc = "0.2"
+md-5 = "0.10"
+open = "5"
+rand = "0.8"
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
+sha2 = "0.10"
+tauri = { version = "2", features = [] }
+tauri-plugin-deep-link = "2"
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "linux", windows))'.dependencies]
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }

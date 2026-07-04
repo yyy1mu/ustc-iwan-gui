@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>USTC iWAN</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <h1>USTC iWAN</h1>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel status-panel">
+          <div class="panel-header">
+            <h2>登录流程</h2>
+            <span id="stageBadge" class="badge">等待开始</span>
+          </div>
+          <button id="loginButton" class="primary-action" type="button">
+            <span class="button-icon" aria-hidden="true"></span>
+            <span>打开统一认证登录</span>
+          </button>
+          <div class="status-list" aria-live="polite">
+            <div class="status-row">
+              <span>设备 UUID</span>
+              <strong id="deviceUuid">未生成</strong>
+            </div>
+            <div class="status-row">
+              <span>回调 URL</span>
+              <strong id="callbackState">等待浏览器跳转</strong>
+            </div>
+            <div class="status-row">
+              <span>代理状态</span>
+              <strong id="proxyState">未连接</strong>
+            </div>
+          </div>
+          <button id="stopProxyButton" class="secondary-action" type="button" disabled>
+            断开代理
+          </button>
+        </aside>
+
+        <section class="panel result-panel">
+          <div class="panel-header">
+            <h2>SDWAN 节点</h2>
+            <span id="resultBadge" class="badge muted">无数据</span>
+          </div>
+          <div id="serverList" class="server-list empty-state">
+            登录成功后选择一个 SDWAN 节点连接。
+          </div>
+        </section>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="panel-header">
+          <h2>运行日志</h2>
+          <button id="clearLogButton" class="ghost-action" type="button">清空</button>
+        </div>
+        <ol id="logList" class="log-list"></ol>
+      </section>
+    </main>
+  </body>
+</html>
