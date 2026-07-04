@@ -8,6 +8,8 @@ use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
 
 fn main() {
+    configure_appimage_runtime();
+
     if std::env::args().nth(1).as_deref() == Some("--iwan-service") {
         service::run_service_process();
     }
@@ -84,3 +86,18 @@ fn main() {
             }
         });
 }
+
+#[cfg(target_os = "linux")]
+fn configure_appimage_runtime() {
+    if std::env::var_os("APPIMAGE").is_none() {
+        return;
+    }
+
+    // Avoid loading host GVFS modules with the AppImage-bundled GLib/GIO.
+    // Mismatched versions can fail on newer distributions with libgvfscommon symbol errors.
+    std::env::set_var("GIO_USE_VFS", "local");
+    std::env::set_var("GIO_MODULE_DIR", "/nonexistent");
+}
+
+#[cfg(not(target_os = "linux"))]
+fn configure_appimage_runtime() {}

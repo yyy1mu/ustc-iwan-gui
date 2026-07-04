@@ -43,7 +43,14 @@ npm run build
 
 ## GitHub Actions 构建 AppImage
 
-仓库包含 `.github/workflows/appimage.yml`，上传到 GitHub 后可以自动在 `ubuntu-22.04` 上构建 x86_64 AppImage。
+仓库包含 `.github/workflows/appimage.yml`，上传到 GitHub 后可以自动构建 x86_64 AppImage。
+
+CI 会分别使用 `ubuntu-22.04` 和 `ubuntu-24.04` 作为构建基底，生成两个 AppImage：
+
+- `USTC-iWAN-ubuntu-22.04-x86_64.AppImage`: 优先给较旧 Linux 发行版测试。
+- `USTC-iWAN-ubuntu-24.04-x86_64.AppImage`: 优先给 Ubuntu 24/26 等较新发行版测试。
+
+AppImage 运行时会在 AppImage 环境中强制使用本地 GIO VFS，避免宿主系统 GVFS 模块和 AppImage 内 GLib/GIO 版本不匹配导致 `libgvfscommon` 符号错误。
 
 触发方式：
 
@@ -51,14 +58,14 @@ npm run build
 - 推送 `v*` tag，例如 `v0.1.0`，会构建 AppImage 并附加到 GitHub Release。
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 AppImage 输出路径：
 
 ```text
-src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
+release/*.AppImage
 ```
 
 ## URL 回调测试

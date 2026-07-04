@@ -39,6 +39,13 @@ function renderResult(result) {
   callbackState.textContent = "已接收";
   lastServers = result.servers;
 
+  if (result.servers.length === 0) {
+    serverList.className = "server-list empty-state";
+    serverList.textContent = "controller 未返回可用 SDWAN 节点。";
+    renderProxyStatus(proxyStatus);
+    return;
+  }
+
   serverList.className = "server-list";
   serverList.replaceChildren(
     ...result.servers.map((server) => {

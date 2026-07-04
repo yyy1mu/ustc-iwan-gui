@@ -23,7 +23,7 @@ use hmac::{Hmac, Mac};
 use rand::{rngs::OsRng, RngCore};
 use reqwest::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager, State};
 use url::Url;
@@ -174,6 +174,11 @@ pub struct RequirementItem {
 #[derive(Debug, Deserialize)]
 struct TokenResponse {
     access_token: String,
+}
+
+struct ControllerResult {
+    messages: Vec<String>,
+    servers: Vec<ServerCredential>,
 }
 
 #[tauri::command]
@@ -337,14 +342,14 @@ async fn finish_login(app: AppHandle, callback: OAuthCallback) -> Result<()> {
         .context("access_token 交换失败")?;
     emit_status(&app, "Token", "access_token 已获取，正在调用 controller。");
 
-    let controller_messages = run_controller_calls(&client, &token, &pending.device_uuid).await;
+    let controller = run_controller_calls(&client, &token, &pending.device_uuid).await;
     emit_status(
         &app,
         "写入文件",
         "正在生成 iwan_credentials.json 和 iwan_keepalive.json。",
     );
 
-    let credentials = write_outputs(&app, token, pending.device_uuid, controller_messages)?;
+    let credentials = write_outputs(&app, token, pending.device_uuid, controller)?;
     let result = to_flow_result(&credentials);
     {
         let state = app.state::<FlowState>();
@@ -393,8 +398,9 @@ async fn run_controller_calls(
     client: &reqwest::Client,
     token: &str,
     device_uuid: &str,
-) -> Vec<String> {
+) -> ControllerResult {
     let mut messages = Vec::new();
+    let mut servers = Vec::new();
 
     let auth_body = json!({
         "domain": DOMAIN,
@@ -403,7 +409,10 @@ async fn run_controller_calls(
         "version": "1.0"
     });
     match controller_post(client, "/m/auth", auth_body, token).await {
-        Ok(value) => messages.push(format!("/m/auth OK: {}", compact_json(&value))),
+        Ok(value) => {
+            collect_server_credentials(&value, &mut servers);
+            messages.push(format!("/m/auth OK: {}", compact_json(&value)));
+        }
         Err(err) => messages.push(format!("/m/auth warning: {err}")),
     }
 
@@ -414,11 +423,15 @@ async fn run_controller_calls(
         "version": "0"
     });
     match controller_post(client, "/m/keepalive", keepalive_body, token).await {
-        Ok(value) => messages.push(format!("/m/keepalive OK: {}", compact_json(&value))),
+        Ok(value) => {
+            collect_server_credentials(&value, &mut servers);
+            messages.push(format!("/m/keepalive OK: {}", compact_json(&value)));
+        }
         Err(err) => messages.push(format!("/m/keepalive warning: {err}")),
     }
 
-    messages
+    dedupe_servers(&mut servers);
+    ControllerResult { messages, servers }
 }
 
 async fn controller_post(
@@ -496,12 +509,12 @@ fn write_outputs(
     app: &AppHandle,
     token: String,
     device_uuid: String,
-    controller_messages: Vec<String>,
+    controller: ControllerResult,
 ) -> Result<CredentialData> {
     let dir = output_dir(app)?;
     fs::create_dir_all(&dir).with_context(|| format!("创建应用数据目录失败: {}", dir.display()))?;
 
-    let servers = Vec::new();
+    let servers = controller.servers;
     let dns = DnsConfig {
         servers: vec!["202.38.64.56".to_string(), "202.38.64.18".to_string()],
     };
@@ -530,8 +543,129 @@ fn write_outputs(
         access_token_preview: preview_token(&token),
         servers,
         dns,
-        controller_messages,
+        controller_messages: controller.messages,
     })
+}
+
+fn collect_server_credentials(value: &Value, servers: &mut Vec<ServerCredential>) {
+    match value {
+        Value::Array(items) => {
+            for item in items {
+                collect_server_credentials(item, servers);
+            }
+        }
+        Value::Object(object) => {
+            if let Some(server) = server_from_object(object) {
+                servers.push(server);
+            }
+            for child in object.values() {
+                collect_server_credentials(child, servers);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn server_from_object(object: &Map<String, Value>) -> Option<ServerCredential> {
+    let host = first_string(
+        object,
+        &[
+            "host",
+            "ip",
+            "server",
+            "addr",
+            "address",
+            "server_ip",
+            "serverIp",
+            "ipaddr",
+            "ipAddr",
+            "wan_ip",
+            "wanIp",
+        ],
+    )?;
+    let port = first_u16(
+        object,
+        &["port", "udp_port", "udpPort", "server_port", "serverPort"],
+    )?;
+    let name = first_string(
+        object,
+        &["name", "title", "line", "node", "isp", "remark", "label"],
+    )
+    .unwrap_or_else(|| host.clone());
+
+    Some(ServerCredential {
+        name,
+        host,
+        port,
+        username: first_string(
+            object,
+            &[
+                "username",
+                "user",
+                "account",
+                "vpn_user",
+                "vpnUser",
+                "sdwan_user",
+                "sdwanUser",
+            ],
+        ),
+        password: first_string(
+            object,
+            &[
+                "password",
+                "pass",
+                "passwd",
+                "vpn_pass",
+                "vpnPass",
+                "sdwan_pass",
+                "sdwanPass",
+            ],
+        ),
+    })
+}
+
+fn first_string(object: &Map<String, Value>, keys: &[&str]) -> Option<String> {
+    keys.iter()
+        .filter_map(|key| object.get(*key))
+        .find_map(value_as_string)
+}
+
+fn first_u16(object: &Map<String, Value>, keys: &[&str]) -> Option<u16> {
+    keys.iter()
+        .filter_map(|key| object.get(*key))
+        .find_map(value_as_u16)
+}
+
+fn value_as_string(value: &Value) -> Option<String> {
+    match value {
+        Value::String(value) => {
+            let trimmed = value.trim();
+            (!trimmed.is_empty()).then(|| trimmed.to_string())
+        }
+        Value::Number(value) => Some(value.to_string()),
+        _ => None,
+    }
+}
+
+fn value_as_u16(value: &Value) -> Option<u16> {
+    match value {
+        Value::Number(value) => value.as_u64().and_then(|value| u16::try_from(value).ok()),
+        Value::String(value) => value.trim().parse::<u16>().ok(),
+        _ => None,
+    }
+}
+
+fn dedupe_servers(servers: &mut Vec<ServerCredential>) {
+    let mut deduped = Vec::new();
+    for server in servers.drain(..) {
+        if !deduped
+            .iter()
+            .any(|item: &ServerCredential| item.host == server.host && item.port == server.port)
+        {
+            deduped.push(server);
+        }
+    }
+    *servers = deduped;
 }
 
 fn to_flow_result(data: &CredentialData) -> FlowResult {
