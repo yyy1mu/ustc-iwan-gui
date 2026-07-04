@@ -1,4 +1,4 @@
-name: Build Linux AppImage
+name: Build Linux Packages
 
 on:
   workflow_dispatch:
@@ -10,8 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  appimage:
-    name: AppImage x86_64 (${{ matrix.os }})
+  packages:
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -29,7 +29,7 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            patchelf \
+            rpm \
             xdg-utils
 
       - name: Setup Node.js
@@ -51,25 +51,24 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build AppImage
-        run: npm run build -- --target x86_64-unknown-linux-gnu --bundles appimage
+      - name: Build packages
+        run: npm run build -- --target x86_64-unknown-linux-gnu --bundles deb,rpm
 
-      - name: Rename AppImage
+      - name: Collect release files
         run: |
           mkdir -p release
-          for file in src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage; do
-            cp "$file" "release/USTC-iWAN-${{ matrix.os }}-x86_64.AppImage"
-          done
+          cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb release/ 2>/dev/null || true
+          cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm release/ 2>/dev/null || true
 
-      - name: Upload AppImage artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: USTC-iWAN-${{ matrix.os }}-x86_64.AppImage
-          path: release/*.AppImage
+          name: packages-${{ matrix.os }}
+          path: release/*
           if-no-files-found: error
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.AppImage
+          files: release/*

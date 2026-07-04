@@ -41,31 +41,33 @@ npm run dev
 npm run build
 ```
 
-## GitHub Actions 构建 AppImage
+## GitHub Actions 构建
 
-仓库包含 `.github/workflows/appimage.yml`，上传到 GitHub 后可以自动构建 x86_64 AppImage。
+仓库包含 `.github/workflows/build.yml`，上传到 GitHub 后自动构建 deb 和 rpm 安装包。
 
-CI 会分别使用 `ubuntu-22.04` 和 `ubuntu-24.04` 作为构建基底，生成两个 AppImage：
+CI 会分别使用 `ubuntu-22.04` 和 `ubuntu-24.04` 构建：
 
-- `USTC-iWAN-ubuntu-22.04-x86_64.AppImage`: 优先给较旧 Linux 发行版测试。
-- `USTC-iWAN-ubuntu-24.04-x86_64.AppImage`: 优先给 Ubuntu 24/26 等较新发行版测试。
-
-AppImage 运行时会在 AppImage 环境中强制使用本地 GIO VFS，避免宿主系统 GVFS 模块和 AppImage 内 GLib/GIO 版本不匹配导致 `libgvfscommon` 符号错误。
+- `ubuntu-22.04` 产物：`.deb` + `.rpm`，优先给较旧发行版测试。
+- `ubuntu-24.04` 产物：`.deb` + `.rpm`，优先给 Ubuntu 24/26 等较新发行版测试。
 
 触发方式：
 
-- 在 GitHub Actions 页面手动运行 `Build Linux AppImage`，构建结果会作为 artifact 上传。
-- 推送 `v*` tag，例如 `v0.1.0`，会构建 AppImage 并附加到 GitHub Release。
+- 在 GitHub Actions 页面手动运行 `Build Linux Packages`。
+- 推送 `v*` tag，例如 `v0.1.2`，构建结果自动附加到 GitHub Release。
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
-AppImage 输出路径：
+安装示例：
 
-```text
-release/*.AppImage
+```bash
+# Debian/Ubuntu
+sudo dpkg -i ustc-iwan_0.1.2_amd64.deb
+
+# Fedora/RHEL
+sudo rpm -i ustc-iwan-0.1.2-1.x86_64.rpm
 ```
 
 ## URL 回调测试
