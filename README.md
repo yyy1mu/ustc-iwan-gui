@@ -1,6 +1,19 @@
 # USTC iWAN Tauri 客户端
 
+> **项目状态：已废弃**
+>
+> 这是一个个人练手项目，用来熟悉 Tauri 2、Rust 后端、前端界面、OAuth deep link 回调以及 Linux TUN 代理相关实现。项目目前已经废弃，不再维护，也不建议作为可用客户端继续使用。
+>
+> 仓库内容仅保留为学习和历史参考。相关接口、认证流程、系统权限行为和网络环境都可能已经变化，使用前请自行审查代码和风险。
+
 面向 x86_64 Linux 的 Tauri 2 桌面客户端，用于完成 USTC iWAN OAuth 登录、获取 SDWAN 节点并启动本地 TUN 代理。
+
+## 说明
+
+- 本项目是练手性质的实验实现，不是官方客户端。
+- 项目已经废弃，不再修复问题、不再跟进上游接口变化，也不提供使用支持。
+- 代码中包含 OAuth、root service、TUN 网卡、路由调整和本地 socket 通信等逻辑，仅建议作为技术参考阅读。
+- 如果需要稳定使用 USTC iWAN，请优先使用官方或仍在维护的方案。
 
 ## 项目结构
 
@@ -26,7 +39,7 @@ ip route
 ps -ef | grep -E 'ustc-iwan|iwan-service|iwan-proxy'
 ```
 
-## 运行
+## 运行（历史参考）
 
 需要 Node.js、npm、Rust 和 Cargo。
 
@@ -35,13 +48,13 @@ npm install
 npm run dev
 ```
 
-构建安装包：
+构建安装包（历史参考）：
 
 ```bash
 npm run build
 ```
 
-## GitHub Actions 构建
+## GitHub Actions 构建（历史参考）
 
 仓库包含 `.github/workflows/build.yml`，上传到 GitHub 后自动构建 deb 和 rpm 安装包。
 
